@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <link rel="shortcut icon" href="/Asset/logo.png" type="image/x-icon">
+  <title>TV Section Control</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --line: #dbe3ef;
+      --ink: #1c2b3a;
+      --muted: #6a7a8b;
+      --primary: #1e5ec8;
+      --primary-soft: #eef4ff;
+      --success: #1f7f52;
+      --success-soft: #eefbf4;
+      --radius: 14px;
+      --shadow: 0 10px 24px rgba(15, 35, 58, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Noto Sans", sans-serif;
+      color: var(--ink);
+      background: linear-gradient(180deg, #f7f9fd 0%, var(--bg) 100%);
+    }
+
+    .app {
+      min-height: 100dvh;
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: 10px;
+      padding: 10px 12px calc(env(safe-area-inset-bottom, 0px) + 14px);
+    }
+
+    .topbar {
+      color: var(--primary);
+      padding: 14px 16px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: clamp(1.05rem, 2vw, 1.35rem);
+      letter-spacing: 0.01em;
+    }
+
+    .toolbar {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #234c79;
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: 1px solid #c9d7e8;
+      border-radius: 10px;
+      background: #f7faff;
+      color: #244d7a;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .btn.primary {
+      background: linear-gradient(130deg, #1e5ec8, #164ba3);
+      border-color: #164ba3;
+      color: #fff;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .content {
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    #list.cards-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+      box-shadow: 0 6px 16px rgba(15, 35, 58, 0.06);
+    }
+
+    .clickable {
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease;
+    }
+
+    .clickable:hover {
+      transform: translateY(-1px);
+      border-color: #bfd1e7;
+    }
+
+    .card.active-section {
+      border-color: #b8deca;
+      background: linear-gradient(180deg, #ffffff 0%, #f3fcf7 100%);
+      box-shadow: 0 8px 18px rgba(24, 121, 70, 0.12);
+    }
+
+    .row-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 800;
+      color: #1f466f;
+      line-height: 1.25;
+      font-size: 1rem;
+    }
+
+    .row-meta {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 0.83rem;
+      font-weight: 600;
+    }
+
+    .badge {
+      margin-top: 8px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid #b8deca;
+      background: var(--success-soft);
+      color: var(--success);
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+    }
+
+    .section-tools {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .product-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .product-item {
+      border: 1px solid #dbe6f3;
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: grid;
+      gap: 6px;
+      background: #fbfdff;
+    }
+
+    .product-name {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #1f466f;
+    }
+
+    .product-meta {
+      font-size: 0.77rem;
+      color: #647b93;
+      font-weight: 600;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .products-table-wrap {
+      width: 100%;
+      overflow: auto;
+      border: 1px solid #dbe6f3;
+      border-radius: 10px;
+      background: #fff;
+    }
+
+    .products-table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 860px;
+    }
+
+    .products-table th,
+    .products-table td {
+      border-bottom: 1px solid #e6eef8;
+      padding: 8px 10px;
+      text-align: left;
+      font-size: 0.82rem;
+      vertical-align: middle;
+    }
+
+    .products-table thead th {
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+      color: #4f6783;
+      background: #f7fbff;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .status {
+      position: fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 50;
+      max-width: min(86vw, 420px);
+      margin: 0;
+      border-radius: 10px;
+      border: 1px solid #d3e0f0;
+      background: #f6f9ff;
+      color: #4f657f;
+      padding: 10px 12px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      box-shadow: 0 12px 26px rgba(12, 33, 55, 0.15);
+    }
+
+    .status.ok {
+      border-color: #bfe4ce;
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .status.error {
+      border-color: #efc9c9;
+      background: #fff3f3;
+      color: #c23e3e;
+    }
+
+    .status[hidden] { display: none; }
+
+    .empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+      padding: 8px 2px;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(14, 27, 42, 0.5);
+      display: grid;
+      place-items: center;
+      padding: 14px;
+    }
+
+    .modal[hidden] { display: none; }
+
+    .modal-card {
+      width: min(460px, 100%);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 20px 42px rgba(13, 30, 49, 0.3);
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #4f6783;
+      letter-spacing: 0.02em;
+    }
+
+    .field input,
+    .field select {
+      border: 1px solid #c8d6e7;
+      border-radius: 9px;
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 0.86rem;
+      color: #1c3653;
+      background: #fbfdff;
+    }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 860px) {
+      #list.cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .app {
+        padding: 8px 10px calc(env(safe-area-inset-bottom, 0px) + 12px);
+      }
+      .actions {
+        width: 100%;
+      }
+      .actions .btn {
+        flex: 1;
+      }
+      #list.cards-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .products-table {
+        min-width: 100%;
+      }
+      .products-table .col-master,
+      .products-table .col-packed,
+      .products-table .col-tray,
+      .products-table .col-time {
+        display: none;
+      }
+      .status {
+        right: 10px;
+        left: 10px;
+        max-width: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <h1>TV Section Control</h1>
+    </header>
+
+    <section class="toolbar">
+      <h2 id="viewTitle" class="title">TV IDs</h2>
+      <div class="actions">
+        <button id="backBtn" class="btn" type="button" hidden>Back</button>
+        <button id="addTvBtn" class="btn primary" type="button">Add TV</button>
+        <button id="refreshBtn" class="btn" type="button">Refresh</button>
+      </div>
+    </section>
+
+    <section class="content">
+      <div id="list"></div>
+    </section>
+  </main>
+
+  <div id="moveSectionModal" class="modal" hidden>
+    <div class="modal-card">
+      <h3 class="row-head"><i class="bi bi-arrow-left-right"></i><span>Move Section</span></h3>
+      <div class="field">
+        <label for="moveSectionName">Section</label>
+        <input id="moveSectionName" type="text" readonly>
+      </div>
+      <div class="field">
+        <label for="moveSectionTargetTv">Target TV ID</label>
+        <select id="moveSectionTargetTv"></select>
+      </div>
+      <div class="form-actions">
+        <button id="confirmMoveSectionBtn" class="btn primary" type="button">Move</button>
+        <button id="cancelMoveSectionBtn" class="btn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="addTvModal" class="modal" hidden>
+    <div class="modal-card">
+      <h3 class="row-head"><i class="bi bi-plus-square"></i><span>Add TV</span></h3>
+      <div class="field">
+        <label for="addTvIdInput">TV ID</label>
+        <input id="addTvIdInput" type="text">
+      </div>
+      <div class="form-actions">
+        <button id="confirmAddTvBtn" class="btn primary" type="button">Add</button>
+        <button id="cancelAddTvBtn" class="btn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <p id="status" class="status" hidden></p>
+
+  <script>
+    const API_URL = "https://script.google.com/macros/s/AKfycbydOrJtGn7P8kjU23qnwv9xzMghrKEHf37XX82Wnym2WgjuADe9Jk26biYgilL1eBFq/exec";
+    const LAST_TV_KEY = "tvControlSelectedTv";
+
+    const viewTitleEl = document.getElementById("viewTitle");
+    const listEl = document.getElementById("list");
+    const backBtnEl = document.getElementById("backBtn");
+    const addTvBtnEl = document.getElementById("addTvBtn");
+    const refreshBtnEl = document.getElementById("refreshBtn");
+    const statusEl = document.getElementById("status");
+    const moveSectionModalEl = document.getElementById("moveSectionModal");
+    const moveSectionNameEl = document.getElementById("moveSectionName");
+    const moveSectionTargetTvEl = document.getElementById("moveSectionTargetTv");
+    const confirmMoveSectionBtnEl = document.getElementById("confirmMoveSectionBtn");
+    const cancelMoveSectionBtnEl = document.getElementById("cancelMoveSectionBtn");
+    const addTvModalEl = document.getElementById("addTvModal");
+    const addTvIdInputEl = document.getElementById("addTvIdInput");
+    const confirmAddTvBtnEl = document.getElementById("confirmAddTvBtn");
+    const cancelAddTvBtnEl = document.getElementById("cancelAddTvBtn");
+
+    const DEFAULT_TV_IDS = ["1", "2", "3"];
+    let tvMap = new Map();
+    let allRows = [];
+    let sharedSectionsCache = [];
+    let activeSectionByTv = new Map();
+    let configuredTvIds = DEFAULT_TV_IDS.slice();
+    let selectedTvId = "";
+    let currentView = "tv";
+    let pending = false;
+    let statusTimer = null;
+    let movingSectionName = "";
+    let selectedSectionForProducts = "";
+    const productStatusLocal = new Map();
+
+    function normalizeTvId(value) {
+      const text = String(value ?? "").trim();
+      if (!text) return "";
+      if (/^\d+$/.test(text)) return String(Number(text));
+      return text;
+    }
+
+    function normalizeKey(value) {
+      return String(value ?? "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    function isTrueLike(value) {
+      const v = String(value ?? "").trim().toLowerCase();
+      return v === "true" || v === "1" || v === "yes" || v === "y";
+    }
+
+    function getValue(row, aliases) {
+      if (!row || typeof row !== "object") return "";
+      const wanted = aliases.map(normalizeKey);
+      const found = Object.keys(row).find((key) => wanted.includes(normalizeKey(key)));
+      return found ? row[found] : "";
+    }
+
+    function getTvId(row) { return normalizeTvId(getValue(row, ["tv", "tvid", "tv id", "tv_id"])); }
+    function getSection(row) { return String(getValue(row, ["section", "group"]) || "").trim(); }
+    function isScreenTrue(row) { return isTrueLike(getValue(row, ["screen"])); }
+    function getStatus(row) { return String(getValue(row, ["status"]) || "").trim(); }
+    function getTime(row) { return String(getValue(row, ["time", "updatedtime", "updated time"]) || "").trim(); }
+    function getPacked(row) { return getValue(row, ["packed"]); }
+    function getTray(row) { return getValue(row, ["tray"]); }
+    function getTotal(row) { return getValue(row, ["total"]); }
+
+    function isSharedMode() {
+      return tvMap.size === 0 && sharedSectionsCache.length > 0;
+    }
+
+    function setPending(isPending) {
+      pending = isPending;
+      refreshBtnEl.disabled = isPending;
+      backBtnEl.disabled = isPending;
+      addTvBtnEl.disabled = isPending;
+      confirmMoveSectionBtnEl.disabled = isPending;
+      cancelMoveSectionBtnEl.disabled = isPending;
+      confirmAddTvBtnEl.disabled = isPending;
+      cancelAddTvBtnEl.disabled = isPending;
+    }
+
+    function setStatus(message, tone) {
+      if (statusTimer) {
+        window.clearTimeout(statusTimer);
+        statusTimer = null;
+      }
+      const text = String(message || "").trim();
+      if (!text) {
+        statusEl.hidden = true;
+        statusEl.textContent = "";
+        statusEl.classList.remove("ok", "error");
+        return;
+      }
+      statusEl.hidden = false;
+      statusEl.textContent = text;
+      statusEl.classList.remove("ok", "error");
+      if (tone === "ok") statusEl.classList.add("ok");
+      if (tone === "error") statusEl.classList.add("error");
+      if (tone === "ok") {
+        statusTimer = window.setTimeout(() => {
+          statusEl.hidden = true;
+        }, 2200);
+      }
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function setView(view) {
+      currentView = view;
+      backBtnEl.hidden = view === "tv";
+      addTvBtnEl.hidden = view !== "tv";
+      if (view === "tv") viewTitleEl.textContent = "TV IDs";
+      if (view === "section") viewTitleEl.textContent = `Sections - TV ${selectedTvId}`;
+      if (view === "products") viewTitleEl.textContent = `Products - ${selectedSectionForProducts}`;
+    }
+
+    function buildTvMap(rows) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const tvId = getTvId(row);
+        if (!tvId) return;
+        if (!map.has(tvId)) map.set(tvId, []);
+        map.get(tvId).push(row);
+      });
+      return map;
+    }
+
+    function buildSharedSections(rows) {
+      const map = new Map();
+      rows.forEach((row) => {
+        const section = getSection(row);
+        if (!section) return;
+        if (!map.has(section)) map.set(section, { count: 0, active: false });
+        map.get(section).count += 1;
+      });
+      return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    }
+
+    function getAvailableTvIds() {
+      if (tvMap.size > 0) {
+        return [...tvMap.keys()].sort((a, b) => {
+          const an = Number(a);
+          const bn = Number(b);
+          if (!Number.isNaN(an) && !Number.isNaN(bn)) return an - bn;
+          return a.localeCompare(b);
+        });
+      }
+      if (configuredTvIds.length) return configuredTvIds.slice();
+      return DEFAULT_TV_IDS.slice();
+    }
+
+    function sortedTvEntries() {
+      if (tvMap.size > 0) {
+        return [...tvMap.entries()].sort((a, b) => {
+          const an = Number(a[0]);
+          const bn = Number(b[0]);
+          if (!Number.isNaN(an) && !Number.isNaN(bn)) return an - bn;
+          return a[0].localeCompare(b[0]);
+        });
+      }
+      return getAvailableTvIds().map((tvId) => [tvId, allRows]);
+    }
+
+    function sectionsForTv(tvId) {
+      if (tvMap.size === 0) {
+        const activeSection = activeSectionByTv.get(tvId) || "";
+        return sharedSectionsCache.map(([name, item]) => [name, {
+          count: item.count,
+          active: Boolean(activeSection && name === activeSection)
+        }]);
+      }
+
+      const rows = tvMap.get(tvId) || [];
+      const map = new Map();
+      rows.forEach((row) => {
+        const section = getSection(row);
+        if (!section) return;
+        if (!map.has(section)) map.set(section, { count: 0, active: false });
+        const item = map.get(section);
+        item.count += 1;
+        item.active = item.active || isScreenTrue(row);
+      });
+      return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    }
+
+    function currentSectionName(tvId) {
+      const sections = sectionsForTv(tvId).filter(([, item]) => item.active).map(([name]) => name);
+      return sections[0] || "";
+    }
+
+    function setRowScreenLocal(row, enabled) {
+      if (!row || typeof row !== "object") return;
+      const key = Object.keys(row).find((k) => normalizeKey(k) === "screen");
+      if (key) {
+        row[key] = enabled ? "true" : "false";
+      } else {
+        row.screen = enabled ? "true" : "false";
+      }
+    }
+
+    function applyLocalSectionActivation(tvId, sectionName) {
+      if (tvMap.size === 0) {
+        activeSectionByTv.set(tvId, sectionName);
+        return;
+      }
+
+      const rows = tvMap.get(tvId) || [];
+      rows.forEach((row) => {
+        const isTargetSection = getSection(row) === sectionName;
+        setRowScreenLocal(row, isTargetSection);
+      });
+    }
+
+    function sectionItemsForTv(tvId, sectionName) {
+      const rows = tvMap.size === 0 ? allRows : (tvMap.get(tvId) || []);
+      const filtered = rows.filter((row) => getSection(row) === sectionName);
+      const items = new Map();
+      filtered.forEach((row) => {
+        const master = String(getValue(row, ["master"]) || "").trim();
+        const product = String(getValue(row, ["product"]) || "").trim();
+        if (!master || !product) return;
+        const key = `${master}::${product}`;
+        if (!items.has(key)) {
+          items.set(key, {
+            master,
+            product,
+            packed: getPacked(row),
+            tray: getTray(row),
+            total: getTotal(row),
+            status: getStatus(row),
+            time: getTime(row)
+          });
+        }
+      });
+      return [...items.values()].sort((a, b) => a.product.localeCompare(b.product));
+    }
+
+    function getLocalStatusKey(tvId, section, master, product) {
+      return [normalizeTvId(tvId), section, master, product].join("::");
+    }
+
+    function getProductStatusState(tvId, section, item) {
+      const key = getLocalStatusKey(tvId, section, item.master, item.product);
+      const local = productStatusLocal.get(key);
+      if (local) return local;
+      return { status: item.status || "", time: item.time || "" };
+    }
+
+    function isCompletedStatus(statusValue) {
+      const value = String(statusValue || "").trim().toLowerCase();
+      return value === "done" || value === "complete" || value === "completed";
+    }
+
+    function openProductsView(sectionName) {
+      selectedSectionForProducts = sectionName;
+      renderProductsView();
+    }
+
+    function renderProductsView() {
+      setView("products");
+      listEl.className = "";
+      if (!selectedTvId || !selectedSectionForProducts) {
+        listEl.innerHTML = '<p class="empty">No products found.</p>';
+        return;
+      }
+      const items = sectionItemsForTv(selectedTvId, selectedSectionForProducts);
+      if (!items.length) {
+        listEl.innerHTML = '<p class="empty">No products found in this section.</p>';
+        return;
+      }
+
+      listEl.innerHTML = `
+        <div class="products-table-wrap">
+          <table class="products-table">
+            <thead>
+              <tr>
+                <th class="col-product">PRODUCT</th>
+                <th class="col-master">MASTER</th>
+                <th class="col-packed">PACKED</th>
+                <th class="col-tray">TRAY</th>
+                <th class="col-total">TOTAL</th>
+                <th class="col-status">STATUS</th>
+                <th class="col-time">TIME</th>
+                <th class="col-action">ACTION</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${items.map((item) => {
+                const state = getProductStatusState(selectedTvId, selectedSectionForProducts, item);
+                const statusText = state.status || "Pending";
+                const timeText = state.time || "-";
+                const markDoneDisabled = isCompletedStatus(statusText);
+                return `
+                  <tr>
+                    <td class="col-product">${escapeHtml(item.product)}</td>
+                    <td class="col-master">${escapeHtml(item.master || "-")}</td>
+                    <td class="num col-packed">${escapeHtml(String(item.packed ?? "-"))}</td>
+                    <td class="num col-tray">${escapeHtml(String(item.tray ?? "-"))}</td>
+                    <td class="num col-total">${escapeHtml(String(item.total ?? "-"))}</td>
+                    <td class="col-status">${escapeHtml(statusText)}</td>
+                    <td class="col-time">${escapeHtml(timeText)}</td>
+                    <td class="col-action">
+                      <button
+                        class="btn primary"
+                        type="button"
+                        data-act="set-status"
+                        data-master="${escapeHtml(item.master)}"
+                        data-product="${escapeHtml(item.product)}"
+                        ${markDoneDisabled ? "disabled" : ""}>
+                        ${markDoneDisabled ? "Completed" : "Complete"}
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              }).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      listEl.querySelectorAll('[data-act="set-status"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const master = btn.getAttribute("data-master") || "";
+          const product = btn.getAttribute("data-product") || "";
+          updateProductStatus(master, product, "Completed");
+        });
+      });
+    }
+
+    async function updateProductStatus(master, product, statusValue) {
+      if (pending || !selectedTvId || !selectedSectionForProducts || !master || !product) return;
+      setPending(true);
+      setStatus(`Updating ${product}...`, "");
+      try {
+        const now = new Date();
+        const localTime = now.toLocaleString();
+        const result = await callApi("updateProductStatus", {
+          tvId: selectedTvId,
+          section: selectedSectionForProducts,
+          master,
+          product,
+          status: statusValue,
+          time: localTime
+        });
+        const key = getLocalStatusKey(selectedTvId, selectedSectionForProducts, master, product);
+        productStatusLocal.set(key, { status: statusValue, time: localTime });
+        renderProductsView();
+        setStatus(result?.message || `${product} updated`, "ok");
+      } catch (error) {
+        setStatus(error.message || "Failed to update product status.", "error");
+      } finally {
+        setPending(false);
+      }
+    }
+
+    function renderTvView() {
+      setView("tv");
+      listEl.className = "cards-grid";
+      const entries = sortedTvEntries();
+      if (!entries.length) {
+        listEl.innerHTML = '<p class="empty">No TV IDs found.</p>';
+        return;
+      }
+      listEl.innerHTML = entries.map(([tvId, rows]) => {
+        const activeSection = currentSectionName(tvId);
+        return `
+          <button class="card clickable" type="button" data-tv-id="${escapeHtml(tvId)}">
+            <div class="row-head"><i class="bi bi-tv"></i><span>TV ${escapeHtml(tvId)}</span></div>
+            <div class="row-meta">${rows.length} rows</div>
+            ${activeSection ? `<span class="badge">Live: ${escapeHtml(activeSection)}</span>` : ""}
+          </button>
+        `;
+      }).join("");
+
+      listEl.querySelectorAll("[data-tv-id]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          selectedTvId = btn.getAttribute("data-tv-id") || "";
+          localStorage.setItem(LAST_TV_KEY, selectedTvId);
+          renderSectionView();
+        });
+      });
+    }
+
+    function renderSectionView() {
+      setView("section");
+      listEl.className = "cards-grid";
+      const sections = sectionsForTv(selectedTvId);
+      if (!sections.length) {
+        listEl.innerHTML = '<p class="empty">No sections found for this TV.</p>';
+        return;
+      }
+
+      listEl.innerHTML = sections.map(([section, info]) => `
+        <article class="card clickable ${info.active ? "active-section" : ""}" data-section-card="${escapeHtml(section)}">
+          <div class="row-head"><i class="bi bi-grid-1x2"></i><span>${escapeHtml(section)}</span></div>
+          <div class="row-meta">${info.count} rows</div>
+          ${info.active ? '<span class="badge">Live Section</span>' : ""}
+          <div class="section-tools">
+            <button class="btn primary" type="button" data-act="activate" data-section="${escapeHtml(section)}" ${info.active ? "disabled" : ""}>
+              ${info.active ? "Active" : "Activate"}
+            </button>
+            ${isSharedMode() ? "" : `<button class="btn" type="button" data-act="move" data-section="${escapeHtml(section)}">Move TV</button>`}
+          </div>
+        </article>
+      `).join("");
+
+      listEl.querySelectorAll("[data-section-card]").forEach((card) => {
+        card.addEventListener("click", () => {
+          const section = card.getAttribute("data-section-card") || "";
+          if (!section) return;
+          openProductsView(section);
+        });
+      });
+
+      listEl.querySelectorAll("[data-act]").forEach((btn) => {
+        btn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const action = btn.getAttribute("data-act");
+          const section = btn.getAttribute("data-section") || "";
+          if (action === "activate") activateSection(section);
+          if (action === "move") openMoveSectionModal(section);
+        });
+      });
+    }
+
+    function openMoveSectionModal(sectionName) {
+      movingSectionName = sectionName;
+      moveSectionNameEl.value = sectionName;
+      const options = sortedTvEntries()
+        .filter(([tvId]) => tvId !== selectedTvId)
+        .map(([tvId]) => `<option value="${escapeHtml(tvId)}">${escapeHtml(tvId)}</option>`)
+        .join("");
+      if (!options) {
+        setStatus("No other TV available to move.", "error");
+        movingSectionName = "";
+        return;
+      }
+      moveSectionTargetTvEl.innerHTML = options;
+      moveSectionModalEl.hidden = false;
+    }
+
+    function closeMoveSectionModal() {
+      movingSectionName = "";
+      moveSectionNameEl.value = "";
+      moveSectionTargetTvEl.innerHTML = "";
+      moveSectionModalEl.hidden = true;
+    }
+
+    async function callApi(action, payload) {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action, ...payload })
+      });
+      const json = await res.json();
+      const statusText = String(json?.status || "").toLowerCase();
+      const isSuccessStatus = statusText === "success" || statusText === "ok";
+      const hasChangedRows = Number(json?.changed) > 0;
+      const updatedMessage = /updated\s+\d+\s+row/i.test(String(json?.message || ""));
+      const isUpdateProductSuccess = action === "updateProductStatus" && (hasChangedRows || updatedMessage);
+      if (!json || (!isSuccessStatus && !isUpdateProductSuccess)) {
+        throw new Error(json && json.message ? json.message : "Action failed");
+      }
+      return json;
+    }
+
+    async function fetchConfiguredTvIds() {
+      const actions = ["config", "getTvConfig"];
+      for (let i = 0; i < actions.length; i++) {
+        try {
+          const action = actions[i];
+          const query = `${API_URL}${API_URL.includes("?") ? "&" : "?"}action=${encodeURIComponent(action)}&_ts=${Date.now()}`;
+          const res = await fetch(query, { cache: "no-store" });
+          const json = await res.json();
+          const rawList = Array.isArray(json?.tvIds) ? json.tvIds : (Array.isArray(json?.data?.tvIds) ? json.data.tvIds : []);
+          const ids = [...new Set(rawList.map(normalizeTvId).filter(Boolean))];
+          if (ids.length) {
+            ids.sort((a, b) => {
+              const an = Number(a);
+              const bn = Number(b);
+              if (!Number.isNaN(an) && !Number.isNaN(bn)) return an - bn;
+              return a.localeCompare(b);
+            });
+            return ids;
+          }
+        } catch (error) {
+          // Try next config endpoint shape.
+        }
+      }
+      return [];
+    }
+
+    async function activateSection(sectionName) {
+      if (pending || !sectionName) return;
+      if (isSharedMode()) {
+        const exists = sharedSectionsCache.some(([name]) => name === sectionName);
+        if (!exists) {
+          setStatus("Selected section has no rows.", "error");
+          return;
+        }
+      }
+
+      const tvRows = tvMap.get(selectedTvId) || [];
+      const toEnable = tvRows.filter((row) => getSection(row) === sectionName);
+
+      if (!toEnable.length && !isSharedMode()) {
+        setStatus("Selected section has no rows.", "error");
+        return;
+      }
+
+      setPending(true);
+      setStatus(`Activating ${sectionName}...`, "");
+      try {
+        await callApi("setActiveSection", {
+          tvId: selectedTvId,
+          section: sectionName
+        });
+        applyLocalSectionActivation(selectedTvId, sectionName);
+        renderSectionView();
+        setStatus(`Live section set to ${sectionName}`, "ok");
+      } catch (error) {
+        setStatus(error.message || "Failed to activate section.", "error");
+      } finally {
+        setPending(false);
+      }
+    }
+
+    async function moveSectionToTv() {
+      if (pending || !movingSectionName) return;
+      if (isSharedMode()) {
+        setStatus("Move TV is not available in shared-data mode.", "error");
+        return;
+      }
+      const targetTvId = normalizeTvId(moveSectionTargetTvEl.value);
+      if (!targetTvId) {
+        setStatus("Select target TV.", "error");
+        return;
+      }
+      if (targetTvId === selectedTvId) {
+        setStatus("Target TV must be different.", "error");
+        return;
+      }
+
+      const items = sectionItemsForTv(selectedTvId, movingSectionName);
+      if (!items.length) {
+        setStatus("No rows found in section.", "error");
+        return;
+      }
+
+      setPending(true);
+      setStatus(`Moving ${movingSectionName} to TV ${targetTvId}...`, "");
+      try {
+        for (let i = 0; i < items.length; i++) {
+          const item = items[i];
+          await callApi("moveProduct", {
+            fromTvId: selectedTvId,
+            toTvId: targetTvId,
+            master: item.master,
+            toMaster: item.master,
+            product: item.product
+          });
+        }
+
+        // Keep one active section rule in destination TV if backend supports it.
+        try {
+          await callApi("setActiveSection", { tvId: targetTvId, section: movingSectionName });
+        } catch (e) {
+          // Ignore if endpoint is not deployed yet.
+        }
+
+        await loadData(false, true);
+        closeMoveSectionModal();
+        renderSectionView();
+        setStatus(`Moved ${movingSectionName} to TV ${targetTvId}`, "ok");
+      } catch (error) {
+        setStatus(error.message || "Failed to move section.", "error");
+      } finally {
+        setPending(false);
+      }
+    }
+
+    function openAddTvModal() {
+      if (pending) return;
+      addTvIdInputEl.value = "";
+      addTvModalEl.hidden = false;
+      window.setTimeout(() => addTvIdInputEl.focus(), 0);
+    }
+
+    function closeAddTvModal() {
+      addTvModalEl.hidden = true;
+      addTvIdInputEl.value = "";
+    }
+
+    async function addTv() {
+      if (pending) return;
+      const tvId = normalizeTvId(addTvIdInputEl.value);
+      if (!tvId) {
+        setStatus("Enter valid TV ID.", "error");
+        return;
+      }
+      if (getAvailableTvIds().includes(tvId)) {
+        setStatus(`TV ${tvId} already exists.`, "error");
+        return;
+      }
+
+      setPending(true);
+      setStatus(`Adding TV ${tvId}...`, "");
+      try {
+        await callApi("addTv", { tvId });
+        const nextIds = [...new Set([...configuredTvIds, tvId])];
+        nextIds.sort((a, b) => {
+          const an = Number(a);
+          const bn = Number(b);
+          if (!Number.isNaN(an) && !Number.isNaN(bn)) return an - bn;
+          return a.localeCompare(b);
+        });
+        configuredTvIds = nextIds;
+        closeAddTvModal();
+        selectedTvId = "";
+        setView("tv");
+        await loadData(false, false);
+        renderTvView();
+        setStatus(`TV ${tvId} added`, "ok");
+      } catch (error) {
+        setStatus(error.message || "Failed to add TV.", "error");
+      } finally {
+        setPending(false);
+      }
+    }
+
+    async function fetchActiveSectionForTv(tvId) {
+      try {
+        const query = `${API_URL}${API_URL.includes("?") ? "&" : "?"}tvId=${encodeURIComponent(tvId)}&currentOnly=true&_ts=${Date.now()}`;
+        const res = await fetch(query, { cache: "no-store" });
+        const json = await res.json();
+        const rows = Array.isArray(json?.data) ? json.data : [];
+        if (!rows.length) {
+          activeSectionByTv.delete(tvId);
+          return;
+        }
+        const activeSection = getSection(rows[0]);
+        if (activeSection) {
+          activeSectionByTv.set(tvId, activeSection);
+        } else {
+          activeSectionByTv.delete(tvId);
+        }
+      } catch (error) {
+        // Keep previous active state when API refresh fails for one TV.
+      }
+    }
+
+    async function refreshActiveSections(tvIds) {
+      await Promise.all(tvIds.map((tvId) => fetchActiveSectionForTv(tvId)));
+    }
+
+    async function loadData(showStatus, preserveSelection) {
+      if (pending) return;
+      refreshBtnEl.disabled = true;
+      if (showStatus !== false) setStatus("Loading data...", "");
+      try {
+        const previousTvId = selectedTvId;
+        const fetchedTvIds = await fetchConfiguredTvIds();
+        if (fetchedTvIds.length) {
+          configuredTvIds = fetchedTvIds;
+        }
+        const url = `${API_URL}${API_URL.includes("?") ? "&" : "?"}_ts=${Date.now()}`;
+        const res = await fetch(url, { cache: "no-store" });
+        const json = await res.json();
+        const rows = Array.isArray(json?.data) ? json.data : [];
+        allRows = rows;
+        tvMap = buildTvMap(rows);
+        sharedSectionsCache = buildSharedSections(rows);
+
+        await refreshActiveSections(getAvailableTvIds());
+
+        const availableTvIds = getAvailableTvIds();
+        const hasPreviousTv = previousTvId && availableTvIds.includes(previousTvId);
+        if (preserveSelection && hasPreviousTv) {
+          selectedTvId = previousTvId;
+        } else {
+          const savedTv = normalizeTvId(localStorage.getItem(LAST_TV_KEY));
+          selectedTvId = savedTv && availableTvIds.includes(savedTv) ? savedTv : "";
+        }
+
+        if (currentView === "section" && selectedTvId) {
+          renderSectionView();
+        } else if (currentView === "products" && selectedTvId && selectedSectionForProducts) {
+          renderProductsView();
+        } else {
+          renderTvView();
+        }
+
+        if (showStatus !== false) setStatus(`${getAvailableTvIds().length} TVs loaded`, "ok");
+      } catch (error) {
+        tvMap = new Map();
+        selectedTvId = "";
+        renderTvView();
+        setStatus("Unable to load API data.", "error");
+      } finally {
+        refreshBtnEl.disabled = false;
+      }
+    }
+
+    backBtnEl.addEventListener("click", () => {
+      if (pending) return;
+      if (currentView === "products") {
+        renderSectionView();
+        return;
+      }
+      selectedTvId = "";
+      selectedSectionForProducts = "";
+      renderTvView();
+    });
+
+    addTvBtnEl.addEventListener("click", () => {
+      openAddTvModal();
+    });
+
+    refreshBtnEl.addEventListener("click", () => {
+      if (pending) return;
+      loadData(true, true);
+    });
+
+    confirmMoveSectionBtnEl.addEventListener("click", () => {
+      moveSectionToTv();
+    });
+
+    cancelMoveSectionBtnEl.addEventListener("click", () => {
+      if (pending) return;
+      closeMoveSectionModal();
+    });
+
+    moveSectionModalEl.addEventListener("click", (event) => {
+      if (event.target === moveSectionModalEl && !pending) {
+        closeMoveSectionModal();
+      }
+    });
+
+    confirmAddTvBtnEl.addEventListener("click", () => {
+      addTv();
+    });
+
+    cancelAddTvBtnEl.addEventListener("click", () => {
+      if (pending) return;
+      closeAddTvModal();
+    });
+
+    addTvModalEl.addEventListener("click", (event) => {
+      if (event.target === addTvModalEl && !pending) {
+        closeAddTvModal();
+      }
+    });
+
+    loadData(true, false);
+  </script>
+</body>
+</html>
