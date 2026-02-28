@@ -273,7 +273,7 @@
     .empty {
       margin: 0;
       color: var(--muted);
-      font-size: 0.92rem;
+      font-size: 1rem;
       padding: 8px 2px;
     }
 
@@ -418,10 +418,21 @@
     </div>
   </div>
 
+  <div id="statusConfirmModal" class="modal" hidden>
+    <div class="modal-card">
+      <h3 class="row-head"><i class="bi bi-check2-square"></i><span>Confirm Action</span></h3>
+      <p id="statusConfirmMessage" class="empty"></p>
+      <div class="form-actions">
+        <button id="confirmStatusActionBtn" class="btn primary" type="button">Confirm</button>
+        <button id="cancelStatusActionBtn" class="btn" type="button">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <p id="status" class="status" hidden></p>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbydOrJtGn7P8kjU23qnwv9xzMghrKEHf37XX82Wnym2WgjuADe9Jk26biYgilL1eBFq/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxpudYsX6cBGA26wYkh05RlvlqVV96AI0-ce3or2SBnHSu_OwSeSLKme6pV6vbSzQ/exec";
     const LAST_TV_KEY = "tvControlSelectedTv";
 
     const viewTitleEl = document.getElementById("viewTitle");
@@ -439,6 +450,10 @@
     const addTvIdInputEl = document.getElementById("addTvIdInput");
     const confirmAddTvBtnEl = document.getElementById("confirmAddTvBtn");
     const cancelAddTvBtnEl = document.getElementById("cancelAddTvBtn");
+    const statusConfirmModalEl = document.getElementById("statusConfirmModal");
+    const statusConfirmMessageEl = document.getElementById("statusConfirmMessage");
+    const confirmStatusActionBtnEl = document.getElementById("confirmStatusActionBtn");
+    const cancelStatusActionBtnEl = document.getElementById("cancelStatusActionBtn");
 
     const DEFAULT_TV_IDS = ["1", "2", "3"];
     let tvMap = new Map();
@@ -453,6 +468,7 @@
     let movingSectionName = "";
     let selectedSectionForProducts = "";
     const productStatusLocal = new Map();
+    let pendingStatusAction = null;
 
     function normalizeTvId(value) {
       const text = String(value ?? "").trim();
@@ -481,6 +497,12 @@
     function getSection(row) { return String(getValue(row, ["section", "group"]) || "").trim(); }
     function isScreenTrue(row) { return isTrueLike(getValue(row, ["screen"])); }
     function getStatus(row) { return String(getValue(row, ["status"]) || "").trim(); }
+    function getPackedStatus(row) {
+      return String(getValue(row, ["packed status", "packed_status", "packedstatus"]) || "").trim();
+    }
+    function getTrayStatus(row) {
+      return String(getValue(row, ["tray status", "tray_status", "traystatus"]) || "").trim();
+    }
     function getTime(row) { return String(getValue(row, ["time", "updatedtime", "updated time"]) || "").trim(); }
     function getPacked(row) { return getValue(row, ["packed"]); }
     function getTray(row) { return getValue(row, ["tray"]); }
@@ -499,6 +521,8 @@
       cancelMoveSectionBtnEl.disabled = isPending;
       confirmAddTvBtnEl.disabled = isPending;
       cancelAddTvBtnEl.disabled = isPending;
+      confirmStatusActionBtnEl.disabled = isPending;
+      cancelStatusActionBtnEl.disabled = isPending;
     }
 
     function setStatus(message, tone) {
@@ -656,6 +680,8 @@
             packed: getPacked(row),
             tray: getTray(row),
             total: getTotal(row),
+            packedStatus: getPackedStatus(row),
+            trayStatus: getTrayStatus(row),
             status: getStatus(row),
             time: getTime(row)
           });
@@ -672,17 +698,53 @@
       const key = getLocalStatusKey(tvId, section, item.master, item.product);
       const local = productStatusLocal.get(key);
       if (local) return local;
-      return { status: item.status || "", time: item.time || "" };
+      const legacy = item.status || "";
+      return {
+        packedStatus: item.packedStatus || legacy || "",
+        trayStatus: item.trayStatus || legacy || "",
+        time: item.time || ""
+      };
     }
 
     function isCompletedStatus(statusValue) {
       const value = String(statusValue || "").trim().toLowerCase();
-      return value === "done" || value === "complete" || value === "completed";
+      return value === "done" || value === "complete" || value === "completed" || value === "packed" || value === "tray";
+    }
+
+    function hasCompletableQty(value) {
+      const text = String(value ?? "").trim().toLowerCase();
+      if (!text || text === "nil" || text === "-") return false;
+      const num = Number(text);
+      return Number.isFinite(num) && num > 0;
     }
 
     function openProductsView(sectionName) {
       selectedSectionForProducts = sectionName;
       renderProductsView();
+    }
+
+    function openStatusConfirmModal(action) {
+      if (!action) return;
+      pendingStatusAction = action;
+      statusConfirmMessageEl.textContent = action.message || "Are you sure?";
+      confirmStatusActionBtnEl.textContent = action.confirmLabel || "Confirm";
+      statusConfirmModalEl.hidden = false;
+    }
+
+    function closeStatusConfirmModal() {
+      if (pending) return;
+      pendingStatusAction = null;
+      statusConfirmMessageEl.textContent = "";
+      confirmStatusActionBtnEl.textContent = "Confirm";
+      statusConfirmModalEl.hidden = true;
+    }
+
+    async function confirmStatusAction() {
+      if (pending || !pendingStatusAction) return;
+      const action = pendingStatusAction;
+      pendingStatusAction = null;
+      statusConfirmModalEl.hidden = true;
+      await updateProductStatus(action.master, action.product, action.statusType, action.statusValue, action.successMessage);
     }
 
     function renderProductsView() {
@@ -708,7 +770,8 @@
                 <th class="col-packed">PACKED</th>
                 <th class="col-tray">TRAY</th>
                 <th class="col-total">TOTAL</th>
-                <th class="col-status">STATUS</th>
+                <th class="col-status">PACKED STATUS</th>
+                <th class="col-status">TRAY STATUS</th>
                 <th class="col-time">TIME</th>
                 <th class="col-action">ACTION</th>
               </tr>
@@ -716,9 +779,13 @@
             <tbody>
               ${items.map((item) => {
                 const state = getProductStatusState(selectedTvId, selectedSectionForProducts, item);
-                const statusText = state.status || "Pending";
+                const packedStatusText = state.packedStatus || "Pending";
+                const trayStatusText = state.trayStatus || "Pending";
                 const timeText = state.time || "-";
-                const markDoneDisabled = isCompletedStatus(statusText);
+                const packedDone = isCompletedStatus(packedStatusText);
+                const trayDone = isCompletedStatus(trayStatusText);
+                const showPackedAction = packedDone || hasCompletableQty(item.packed);
+                const showTrayAction = trayDone || hasCompletableQty(item.tray);
                 return `
                   <tr>
                     <td class="col-product">${escapeHtml(item.product)}</td>
@@ -726,18 +793,50 @@
                     <td class="num col-packed">${escapeHtml(String(item.packed ?? "-"))}</td>
                     <td class="num col-tray">${escapeHtml(String(item.tray ?? "-"))}</td>
                     <td class="num col-total">${escapeHtml(String(item.total ?? "-"))}</td>
-                    <td class="col-status">${escapeHtml(statusText)}</td>
+                    <td class="col-status">${escapeHtml(packedStatusText)}</td>
+                    <td class="col-status">${escapeHtml(trayStatusText)}</td>
                     <td class="col-time">${escapeHtml(timeText)}</td>
                     <td class="col-action">
-                      <button
-                        class="btn primary"
-                        type="button"
-                        data-act="set-status"
-                        data-master="${escapeHtml(item.master)}"
-                        data-product="${escapeHtml(item.product)}"
-                        ${markDoneDisabled ? "disabled" : ""}>
-                        ${markDoneDisabled ? "Completed" : "Complete"}
-                      </button>
+                      ${showPackedAction ? (packedDone ? `
+                        <button
+                          class="btn"
+                          type="button"
+                          data-act="undo-packed"
+                          data-master="${escapeHtml(item.master)}"
+                          data-product="${escapeHtml(item.product)}">
+                          Undo Packed
+                        </button>
+                      ` : `
+                        <button
+                          class="btn primary"
+                          type="button"
+                          data-act="set-status-packed"
+                          data-master="${escapeHtml(item.master)}"
+                          data-product="${escapeHtml(item.product)}"
+                          data-packed="${escapeHtml(String(item.packed ?? "-"))}">
+                          Packed
+                        </button>
+                      `) : ""}
+                      ${showTrayAction ? (trayDone ? `
+                        <button
+                          class="btn"
+                          type="button"
+                          data-act="undo-tray"
+                          data-master="${escapeHtml(item.master)}"
+                          data-product="${escapeHtml(item.product)}">
+                          Undo Tray
+                        </button>
+                      ` : `
+                        <button
+                          class="btn primary"
+                          type="button"
+                          data-act="set-status-tray"
+                          data-master="${escapeHtml(item.master)}"
+                          data-product="${escapeHtml(item.product)}"
+                          data-tray="${escapeHtml(String(item.tray ?? "-"))}">
+                          Tray
+                        </button>
+                      `) : ""}
                     </td>
                   </tr>
                 `;
@@ -747,17 +846,75 @@
         </div>
       `;
 
-      listEl.querySelectorAll('[data-act="set-status"]').forEach((btn) => {
+      listEl.querySelectorAll('[data-act="set-status-packed"]').forEach((btn) => {
         btn.addEventListener("click", () => {
           const master = btn.getAttribute("data-master") || "";
           const product = btn.getAttribute("data-product") || "";
-          updateProductStatus(master, product, "Completed");
+          const packedQty = btn.getAttribute("data-packed") || "-";
+          openStatusConfirmModal({
+            master,
+            product,
+            statusType: "packed",
+            statusValue: "Completed",
+            message: `${product} ${packedQty} is completed.`,
+            confirmLabel: "Confirm Packed",
+            successMessage: `${product} marked as Packed`
+          });
+        });
+      });
+
+      listEl.querySelectorAll('[data-act="set-status-tray"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const master = btn.getAttribute("data-master") || "";
+          const product = btn.getAttribute("data-product") || "";
+          const trayQty = btn.getAttribute("data-tray") || "-";
+          openStatusConfirmModal({
+            master,
+            product,
+            statusType: "tray",
+            statusValue: "Completed",
+            message: `${product} ${trayQty} is completed.`,
+            confirmLabel: "Confirm Tray",
+            successMessage: `${product} marked as Tray`
+          });
+        });
+      });
+
+      listEl.querySelectorAll('[data-act="undo-packed"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const master = btn.getAttribute("data-master") || "";
+          const product = btn.getAttribute("data-product") || "";
+          openStatusConfirmModal({
+            master,
+            product,
+            statusType: "packed",
+            statusValue: "Pending",
+            message: `Undo Packed completion for ${product}?`,
+            confirmLabel: "Confirm Undo Packed",
+            successMessage: `${product} Packed reverted`
+          });
+        });
+      });
+
+      listEl.querySelectorAll('[data-act="undo-tray"]').forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const master = btn.getAttribute("data-master") || "";
+          const product = btn.getAttribute("data-product") || "";
+          openStatusConfirmModal({
+            master,
+            product,
+            statusType: "tray",
+            statusValue: "Pending",
+            message: `Undo Tray completion for ${product}?`,
+            confirmLabel: "Confirm Undo Tray",
+            successMessage: `${product} Tray reverted`
+          });
         });
       });
     }
 
-    async function updateProductStatus(master, product, statusValue) {
-      if (pending || !selectedTvId || !selectedSectionForProducts || !master || !product) return;
+    async function updateProductStatus(master, product, statusType, statusValue, successMessage) {
+      if (pending || !selectedTvId || !selectedSectionForProducts || !master || !product || !statusType) return;
       setPending(true);
       setStatus(`Updating ${product}...`, "");
       try {
@@ -768,13 +925,27 @@
           section: selectedSectionForProducts,
           master,
           product,
+          statusType,
           status: statusValue,
           time: localTime
         });
         const key = getLocalStatusKey(selectedTvId, selectedSectionForProducts, master, product);
-        productStatusLocal.set(key, { status: statusValue, time: localTime });
+        const item = sectionItemsForTv(selectedTvId, selectedSectionForProducts)
+          .find((x) => x.master === master && x.product === product);
+        const baseState = item
+          ? getProductStatusState(selectedTvId, selectedSectionForProducts, item)
+          : { packedStatus: "", trayStatus: "", time: "" };
+        const existingState = productStatusLocal.get(key) || baseState;
+        const nextState = {
+          packedStatus: existingState.packedStatus,
+          trayStatus: existingState.trayStatus,
+          time: localTime
+        };
+        if (statusType === "packed") nextState.packedStatus = statusValue;
+        if (statusType === "tray") nextState.trayStatus = statusValue;
+        productStatusLocal.set(key, nextState);
         renderProductsView();
-        setStatus(result?.message || `${product} updated`, "ok");
+        setStatus(result?.message || successMessage || `${product} updated`, "ok");
       } catch (error) {
         setStatus(error.message || "Failed to update product status.", "error");
       } finally {
@@ -1177,6 +1348,20 @@
     addTvModalEl.addEventListener("click", (event) => {
       if (event.target === addTvModalEl && !pending) {
         closeAddTvModal();
+      }
+    });
+
+    confirmStatusActionBtnEl.addEventListener("click", () => {
+      confirmStatusAction();
+    });
+
+    cancelStatusActionBtnEl.addEventListener("click", () => {
+      closeStatusConfirmModal();
+    });
+
+    statusConfirmModalEl.addEventListener("click", (event) => {
+      if (event.target === statusConfirmModalEl && !pending) {
+        closeStatusConfirmModal();
       }
     });
 
